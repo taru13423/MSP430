@@ -33,6 +33,7 @@ void loop() {
   int no_resend = send_temperature_until_ack_lpr9204( packet_id, temperature, humidity );
 
   while (1) {
+    digitalWrite(RED_LED, LOW);
     if ( !read_serial(30 * 1000) ) { // 30秒以上応答がなければbreakする
       sleep_time = 30;
       packet_id = (packet_id + 1) % 10; // n+1される
@@ -61,10 +62,7 @@ void loop() {
           sleep_time = s;
         }
         counter = 0;
-        digitalWrite(RED_LED, HIGH);
-        _BIS_SR(SCG1 | SCG0 | CPUOFF | GIE);
-        digitalWrite(RED_LED, LOW);
-        break;
+        _BIS_SR(LPM1_bits + GIE);
       }
     }
   }
@@ -73,17 +71,13 @@ void loop() {
   
 }
 
-#pragma vector = TIMER_A0_VECTOR
+#pragma vector = TIMER0_A0_VECTOR
 __interrupt void TIMER0_A (void)
 {
+  digitalWrite(RED_LED, HIGH);
   counter++;
-  if((counter/100)%2==0){
-    digitalWrite(RED_LED, HIGH);
-  }else{
-    digitalWrite(RED_LED, LOW);
-  }
-  if(counter == sleep_time*1000){
-    _BIC_SR_IRQ(SCG1 | SCG0 | CPUOFF);
+  if(counter >= sleep_time*1000){
+    _BIC_SR_IRQ(LPM1_bits);
   }
 }
 
