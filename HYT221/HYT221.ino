@@ -63,6 +63,7 @@ void loop() {
         }
         counter = 0;
         _BIS_SR(LPM1_bits + GIE);
+        break;
       }
     }
   }
