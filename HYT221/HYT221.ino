@@ -9,17 +9,20 @@ int packet_id = 0;
 int my_id = 0;
 int sleep_time = 10;
 int counter = 0;
+volatile int mili_seconds;
+volatile int seconds;
 
 void setup() {
-  pinMode(RED_LED, OUTPUT);
-  digitalWrite(RED_LED, LOW);
+  // pinMode(RED_LED, OUTPUT);
+  // digitalWrite(RED_LED, LOW);
   Serial.begin(BAUDRATE); // Communication with LPR9204
   while (my_id == 0) {
     my_id = init_lpr9204();
   }
   Wire.setModule(0);
   Wire.begin();
-
+  seconds = 0; 
+  mili_seconds = 0;
   // setup timerA
   TA0CTL = TASSEL_2 + ID_1 + MC_1;  // タイマ0を設定(SMCLK/2分周/カウントアップ)
   TA0CCR0 = 8000;                 // 8000カウントごとに割り込み
@@ -61,25 +64,28 @@ void loop() {
         } else {
           sleep_time = s;
         }
-        counter = 0;
-        _BIS_SR(LPM1_bits + GIE);
+        seconds = 0;
+        sleep_lpr9204();
+        while(seconds < sleep_time) _BIS_SR(LPM1_bits + GIE);
         break;
       }
     }
   }
-  delay(1000);
-  sleep_lpr9204();
+  
   
 }
 
 #pragma vector = TIMER0_A0_VECTOR
 __interrupt void TIMER0_A (void)
 {
-  digitalWrite(RED_LED, HIGH);
-  counter++;
-  if(counter >= sleep_time*1000){
-    _BIC_SR_IRQ(LPM1_bits);
+  mili_seconds++;
+  if (mili_seconds >= 1000) {
+    mili_seconds = 0;
+    seconds++;
   }
+  if( seconds > sleep_time ) {
+     seconds = 0;
+ }  
 }
 
 bool get_temperature_by_wire() {
