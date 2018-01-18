@@ -67,6 +67,8 @@ void loop() {
         seconds = 0;
         sleep_lpr9204();
         while(seconds < sleep_time) _BIS_SR(LPM1_bits + GIE);
+        //for(int i=0; i < sleep_time; i++) delay(1000);
+
         break;
       }
     }
@@ -117,6 +119,3 @@ bool get_temperature_by_wire() {
   Wire.endTransmission();           // End transmission and release I2C bus
   return (is_available);
 }
-
-
-

@@ -8,6 +8,7 @@
  足らなければ再送要求して、
  データがそろったら全ノードを60-かかった秒だけ寝かせる
 '''
+
 import serial
 import sys
 import codecs
@@ -22,7 +23,7 @@ from time import sleep
 
 NODE_LIST_FILE = '/home/tarutani/node_list.txt'
 PID_FILE = '/var/run/concentratord.pid'
-OUTPUT_FILE = '/home/iwata/temp_humi_'
+OUTPUT_FILE = '/home/tarutani/temp_humi_'
 INTERMITTENT_TIME = 60
 
 serial_readline = deque() # シリアルデータ
@@ -37,7 +38,7 @@ s = serial.Serial('/dev/ttymxc1', 9600, timeout=1)
 #s = serial.Serial('/dev/tty.usbserial-AL00MUQ0', 115200, timeout=1)
 #s = serial.Serial('COM3', 115200, timeout=1)
 packet_number = 0
-
+sleep_number = 0
 fiap = pyfiap.fiap.APP("http://ants.jga.kisarazu.ac.jp/axis2/services/FIAPStorage?wsdl")
 
 '''
@@ -56,11 +57,16 @@ def receive_packet(e, ):
                 sksend_sleep(data)
 
 def sksend_sleep(data):
+    global sleep_number
     data_list = data.split()
     if( len(data_list)>2 and data_list[0] == "ERXDATA"):
         sleep_time = INTERMITTENT_TIME - datetime.now().second
         send_packet("SKSEND 1 1000 "+data_list[1]+" 0F SLEEP,"+data_list[1]+",0,"+str(sleep_time))
         print('sleep_time>{0}'.format(sleep_time))
+        sleep_number = sleep_number + 1
+        print("-----------------------------------")
+        print("sleep_number >> "+str(sleep_number))
+        print("-----------------------------------")
 
 def routing_packet(e, ):
     line_buffer = ""
