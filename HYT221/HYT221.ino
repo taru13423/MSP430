@@ -60,7 +60,7 @@ void loop() {
         }
         int s = get_sleep_time();
         if ( s == 0 ) {
-          sleep_time = 50;
+          sleep_time = 58;
         } else {
           sleep_time = s;
         }

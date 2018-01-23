@@ -61,8 +61,12 @@ def sksend_sleep(data):
     data_list = data.split()
     if( len(data_list)>2 and data_list[0] == "ERXDATA"):
         sleep_time = INTERMITTENT_TIME - datetime.now().second
+        if(sleep_time >= 60):
+            sleep_time = 58
+        elif(sleep_time < 10):
+            sleep_time += 60
         send_packet("SKSEND 1 1000 "+data_list[1]+" 0F SLEEP,"+data_list[1]+",0,"+str(sleep_time))
-        print('sleep_time>{0}'.format(sleep_time))
+        print('sleep_time>{0} now.second >> {1}'.format(sleep_time,datetime.now().second))
         sleep_number = sleep_number + 1
         print("-----------------------------------")
         print("sleep_number >> "+str(sleep_number))
@@ -93,6 +97,18 @@ def push_each_queue( line ):
             humi   = t_and_h[2]
             packet = (send_id, p_id, temp, humi)
             received_packets.append(packet)
+
+            now  = datetime.now()
+            day  = now.strftime("%Y%m%d")
+            date = now.strftime("%H:%M:%S")
+
+            svp = temp2svp(float(temp))  # Saturated Vapor Pressure [Pa]
+            vp = svp * float(humi) / 100 # Vapor Pressure [Pa]
+            vpd = (svp-vp)/1000   # Vapour Pressure Dificit [kPa]
+
+            csv = date+'\t'+str(temp)+'\t'+str(humi)+'\t'+str(vpd)
+            with open(OUTPUT_FILE + send_id + '_' + day+'.csv', 'a') as f:
+                f.write(csv+'\r\n')
 
     elif( len(data)>=4 and data[0] == 'EACK' ):
         ack_result = ( data[1], data[3] ) # STATUS, MSG_ID
@@ -128,25 +144,13 @@ def automatic_repeat_request(e, packet_number):
             print("Packet>",end="")
             print(packet)
             # 対象のパケットIDでかつ、対象の座標である
+
             if( packet[1] == packet_number and packet[0] in coordinate ):
                 coord = coordinate.pop(packet[0]) # 座標情報の更新
                 packet += coord # パケットに座標情報を付与
                 accepted_packets.append(packet)
                 print("Captured: " + packet[0] + " and Remaining : ", end="" )
                 print(coordinate.keys())
-#            else:
-#                print("[Information] lost packet : (" + packet[0] +","+ str(packet[1]) +","+ packet[2] +","+ packet[3] +") / Current PacketID: "+str(packet_number))
-#                print("packet[1] == packet_number", packet[1] == packet_number)
-#                print("packet[0] in coordinate", packet[0] in coordinate)
-        #else: # パケットが届いている間は再送要求を送らない
-        #    if( datetime.now().second - start_sec > 5 ):
-        #        start_sec = datetime.now().second # 前回の実行から5秒以上経っていれば再送要求する
-        #        for node in coordinate.keys():
-        #            if( e.isSet() ): # 再送制御中にスレッドが残ることがあるので止める
-        #                break
-        #            print("node > ",end="")
-        #            print(node)
-        #            send_packet("SKSEND 1 1000 "+node+" 0C RSEND,"+node+","+str(packet_number))
 
 '''
  寝ているときに受け取ったパケットを処理する(insleep)スレッド
@@ -175,27 +179,6 @@ def insleep_automatic_repeat_request(e_slp, packet_number):
 def send_packet( command ):
     s.flush()
     _send_packet_and_get_message_id( command )
-
-'''
-    # 一回ぐらいは再送してみる
-    while number_of_sent_packets < 2:
-        if( len(ack_message_queue) > 0 ):
-            ack_message = pop_ack_message( sent_message_id )
-            if( ack_message == '1' ):
-                break
-            elif( len(ack_message_queue) < 1 or ack_message == '0' ): # ackキューが空/ackメッセージが0なら再送
-                print("[Resend because of  nack] "+command
-    #         sleep(2)
-                message_id = _send_packet_and_get_message_id( command )
-                sent_message_id.add(message_id)
-                number_of_sent_packets += 1
-        elif( len(error_code_queue) > 0 ): # エラーメッセージがでたときは再送
-            error_message = error_code_queue.popleft()
-            print("[Resend because of error] "+command+" / "+error_message)
-            message_id = _send_packet_and_get_message_id( command )
-            sent_message_id.add(message_id)
-            number_of_sent_packets += 1
-'''
 
 '''
  sleep_allを発信
@@ -228,7 +211,6 @@ def broadcast_packet( command, no_resend ):
 '''
 
 def _send_packet_and_get_message_id( command ):
-#    print(command)
     serial_command = command + "\r\n"
     s.write(serial_command.encode('utf-8'))
 
@@ -236,11 +218,9 @@ def _send_packet_and_get_message_id( command ):
  ack_message_queueから対象のmessage_idを含むACK結果を取り出して返します
 '''
 def pop_ack_message( sent_message_id ):
-#    print("POP ack message : ", end="")
-#    print(ack_message_queue)
+
     for ack in ack_message_queue: # ack[0] = STATUS, ack[1] = MSG_ID
-#        print("Test : " + ack[1]+ " / Target :", end="")
-#        print(sent_message_id)
+
         if( ack[1] in sent_message_id ):
             ack_message_queue.remove(ack)
             sent_message_id.remove(ack[1])
@@ -258,6 +238,7 @@ def temp2svp( temp ):
     d = 1.673952 / 100000 * temp * temp
     e = 2.433502 * math.log(temp)
     return( math.exp( a + b + c + d + e ) * 100 )
+
 
 '''
  メインスレッド
@@ -285,11 +266,9 @@ def main_thread():
             th_slp = threading.Thread(name='insleep', target=insleep_automatic_repeat_request, args=(e_slp, packet_number))
             th_slp.start()
             packet_number = ( packet_number+1 ) % 10
-        #    sleep_time = broadcast_sleep_all(2)
-            now  = datetime.now()
-            day  = now.strftime("%Y%m%d")
-            date = now.strftime("%H:%M:%S")
-            fiap_upload = []
+            e_slp.clear()
+
+
             for packet in accepted_packets:
                 # packet = (send_id, packet_number, temp, humi, x_pos, y_pos)
                 send_id = packet[0]
@@ -298,27 +277,9 @@ def main_thread():
                 x_pos = packet[4]
                 y_pos = packet[5]
                 posit = x_pos + '_' + y_pos
-                svp = temp2svp(temp)  # Saturated Vapor Pressure [Pa]
-                vp = svp * humi / 100 # Vapor Pressure [Pa]
-                vpd = (svp-vp)/1000   # Vapour Pressure Dificit [kPa]
-                csv = date+'\t'+str(temp)+'\t'+str(humi)+'\t'+str(vpd)
-                with open(OUTPUT_FILE + send_id + '_' + day+'.csv', 'a') as f:
-                    f.write(csv+'\r\n')
-                fiap_upload.append(['http://iwata.com/IWATA/temp_'+posit, temp, now])
-                fiap_upload.append(['http://iwata.com/IWATA/humi_'+posit, humi, now])
-                fiap_upload.append(['http://iwata.com/IWATA/VPD_' +posit, vpd,  now])
                 print(send_id+":"+posit+", ",end="")
-#            if( len(fiap_upload) > 0 ):
-#                fiap.write(fiap_upload)
-            accepted_packets.clear()
-#            sleep(1)
-        #    sleep_time = INTERMITTENT_TIME - datetime.now().second
-        #    if( sleep_time > 3 ): # sleepが2秒分あって、その他1秒換算
-        #        sleep_time -= 3
-        #    print(" Sleep...."+str(sleep_time)+" s")
-        #    sleep(sleep_time)
-        #    print("[Information] Wakeup!")
-            e_slp.clear()
+
+
 
     except KeyboardInterrupt:
         print("W: interrupt received, stopping script")
