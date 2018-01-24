@@ -17,6 +17,7 @@ import os
 import threading
 import subprocess
 import pyfiap
+import linecache
 from datetime import datetime
 from collections import deque
 from time import sleep
@@ -38,7 +39,6 @@ s = serial.Serial('/dev/ttymxc1', 9600, timeout=1)
 #s = serial.Serial('/dev/tty.usbserial-AL00MUQ0', 115200, timeout=1)
 #s = serial.Serial('COM3', 115200, timeout=1)
 packet_number = 0
-sleep_number = 0
 fiap = pyfiap.fiap.APP("http://ants.jga.kisarazu.ac.jp/axis2/services/FIAPStorage?wsdl")
 
 '''
@@ -67,10 +67,6 @@ def sksend_sleep(data):
             sleep_time += 60
         send_packet("SKSEND 1 1000 "+data_list[1]+" 0F SLEEP,"+data_list[1]+",0,"+str(sleep_time))
         print('sleep_time>{0} now.second >> {1}'.format(sleep_time,datetime.now().second))
-        sleep_number = sleep_number + 1
-        print("-----------------------------------")
-        print("sleep_number >> "+str(sleep_number))
-        print("-----------------------------------")
 
 def routing_packet(e, ):
     line_buffer = ""
@@ -105,10 +101,24 @@ def push_each_queue( line ):
             svp = temp2svp(float(temp))  # Saturated Vapor Pressure [Pa]
             vp = svp * float(humi) / 100 # Vapor Pressure [Pa]
             vpd = (svp-vp)/1000   # Vapour Pressure Dificit [kPa]
-
             csv = date+'\t'+str(temp)+'\t'+str(humi)+'\t'+str(vpd)
-            with open(OUTPUT_FILE + send_id + '_' + day+'.csv', 'a') as f:
-                f.write(csv+'\r\n')
+            if(os.path.isfile(OUTPUT_FILE + send_id + '_' + day+'.csv')):
+
+                num_lines = sum(1 for line in open(OUTPUT_FILE + send_id + '_' + day+'.csv','r'))
+                target_line = linecache.getline(OUTPUT_FILE + send_id + '_' + day+'.csv', num_lines)
+                print("----------------------------------")
+                print("target_line >>" + target_line)
+                print("csv >> " + csv)
+                print("test")
+                print("----------------------------------")
+                if (csv.split('\t')[1] != target_line.split('\t')[1] or
+                csv.split('\t')[2] != target_line.split('\t')[2] or
+                csv.split('\t')[3] != target_line.split('\t')[3]):
+                    with open(OUTPUT_FILE + send_id + '_' + day+'.csv', 'a') as f:
+                        f.write(csv+'\r\n')
+            else:
+                with open(OUTPUT_FILE + send_id + '_' + day+'.csv', 'a') as f:
+                    f.write(csv+'\r\n')
 
     elif( len(data)>=4 and data[0] == 'EACK' ):
         ack_result = ( data[1], data[3] ) # STATUS, MSG_ID
