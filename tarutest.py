@@ -104,16 +104,17 @@ def push_each_queue( line ):
             csv = date+'\t'+str(temp)+'\t'+str(humi)+'\t'+str(vpd)
             if(os.path.isfile(OUTPUT_FILE + send_id + '_' + day+'.csv')):
 
-                num_lines = sum(1 for line in open(OUTPUT_FILE + send_id + '_' + day+'.csv','r'))
+                num_lines = sum(1 for line in open(OUTPUT_FILE + send_id + '_' + day+'.csv'))
                 target_line = linecache.getline(OUTPUT_FILE + send_id + '_' + day+'.csv', num_lines)
+                linecache.clearcache()
                 print("----------------------------------")
-                print("target_line >>" + target_line)
-                print("csv >> " + csv)
-                print("test")
+                print("csv[1] >> {0}, tar[1] >> {1}".format(csv.split('\t')[1], target_line.split('\t')[1]))
+                print("csv[2] >> {0}, tar[2] >> {1}".format(csv.split('\t')[2], target_line.split('\t')[2]))
                 print("----------------------------------")
-                if (csv.split('\t')[1] != target_line.split('\t')[1] or
-                csv.split('\t')[2] != target_line.split('\t')[2] or
-                csv.split('\t')[3] != target_line.split('\t')[3]):
+                if (csv.split('\t')[1] == target_line.split('\t')[1] and
+                csv.split('\t')[2] == target_line.split('\t')[2]):
+                    print("onazi!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                else:
                     with open(OUTPUT_FILE + send_id + '_' + day+'.csv', 'a') as f:
                         f.write(csv+'\r\n')
             else:
