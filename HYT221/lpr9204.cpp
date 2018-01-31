@@ -123,6 +123,9 @@ int get_sleep_time() {
   if ( '0' <= serial_read[48] && serial_read[48] <= '9' ) {
     sleep_time += serial_read[48] - '0';
   }
+  if(sleep_time < 50){
+    blink_times(3);
+  }
   return sleep_time;
 }
 

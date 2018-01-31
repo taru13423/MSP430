@@ -67,6 +67,8 @@ def sksend_sleep(data):
             sleep_time += 60
         send_packet("SKSEND 1 1000 "+data_list[1]+" 0F SLEEP,"+data_list[1]+",0,"+str(sleep_time))
         print('sleep_time>{0} now.second >> {1}'.format(sleep_time,datetime.now().second))
+        sleep(1)
+        send_packet("SKSEND 1 1000 "+data_list[1]+" 0F SLEEP,"+data_list[1]+",0,"+str(sleep_time))
 
 def routing_packet(e, ):
     line_buffer = ""
@@ -113,7 +115,7 @@ def push_each_queue( line ):
                 print("----------------------------------")
                 if (csv.split('\t')[1] == target_line.split('\t')[1] and
                 csv.split('\t')[2] == target_line.split('\t')[2]):
-                    print("onazi!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                    print("onazi!")
                 else:
                     with open(OUTPUT_FILE + send_id + '_' + day+'.csv', 'a') as f:
                         f.write(csv+'\r\n')
@@ -289,8 +291,6 @@ def main_thread():
                 y_pos = packet[5]
                 posit = x_pos + '_' + y_pos
                 print(send_id+":"+posit+", ",end="")
-
-
 
     except KeyboardInterrupt:
         print("W: interrupt received, stopping script")

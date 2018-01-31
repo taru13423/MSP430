@@ -13,7 +13,7 @@ volatile int mili_seconds;
 volatile int seconds;
 
 void setup() {
-  // pinMode(RED_LED, OUTPUT);
+  pinMode(RED_LED, OUTPUT);
   // digitalWrite(RED_LED, LOW);
   Serial.begin(BAUDRATE); // Communication with LPR9204
   while (my_id == 0) {
@@ -40,7 +40,6 @@ void loop() {
     if ( !read_serial(30 * 1000) ) { // 30秒以上応答がなければbreakする
       sleep_time = 30;
       packet_id = (packet_id + 1) % 10; // n+1される
-      blink_times(10);
       break;
     }
     
@@ -63,18 +62,17 @@ void loop() {
           sleep_time = 58;
         } else {
           sleep_time = s;
+          
         }
-        seconds = 0;
-        sleep_lpr9204();
-        while(seconds < sleep_time) _BIS_SR(LPM1_bits + GIE);
-        //for(int i=0; i < sleep_time; i++) delay(1000);
-
+        
         break;
       }
     }
+    
   }
-  
-  
+  seconds = 0;
+  sleep_lpr9204();
+  while(seconds < sleep_time) _BIS_SR(LPM1_bits + GIE);
 }
 
 #pragma vector = TIMER0_A0_VECTOR
