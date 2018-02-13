@@ -62,7 +62,7 @@ def sksend_sleep(data):
     if( len(data_list)>2 and data_list[0] == "ERXDATA"):
         sleep_time = INTERMITTENT_TIME - datetime.now().second
         if(sleep_time >= 60):
-            sleep_time = 58
+            sleep_time = 59
         elif(sleep_time < 10):
             sleep_time += 60
         send_packet("SKSEND 1 1000 "+data_list[1]+" 0F SLEEP,"+data_list[1]+",0,"+str(sleep_time))
@@ -99,11 +99,16 @@ def push_each_queue( line ):
             now  = datetime.now()
             day  = now.strftime("%Y%m%d")
             date = now.strftime("%H:%M:%S")
+            sleep_time = INTERMITTENT_TIME - now.second
+            if(sleep_time >= 60):
+                sleep_time = 59
+            elif(sleep_time < 10):
+                sleep_time += 60
 
             svp = temp2svp(float(temp))  # Saturated Vapor Pressure [Pa]
             vp = svp * float(humi) / 100 # Vapor Pressure [Pa]
             vpd = (svp-vp)/1000   # Vapour Pressure Dificit [kPa]
-            csv = date+'\t'+str(temp)+'\t'+str(humi)+'\t'+str(vpd)
+            csv = date+'\t'+str(int(sleep_time))+str(temp)+'\t'+str(humi)+'\t'+str(vpd)
             if(os.path.isfile(OUTPUT_FILE + send_id + '_' + day+'.csv')):
 
                 num_lines = sum(1 for line in open(OUTPUT_FILE + send_id + '_' + day+'.csv'))
@@ -305,13 +310,3 @@ def main_thread():
 
 if __name__ == '__main__':
     main_thread()
-'''
-    pid = os.fork()
-    if( pid > 0 ):
-        f2 = open(PID_FILE,'w')
-        f2.write(str(pid)+"\n")
-        f2.close()
-        sys.exit()
-    if( pid == 0 ):
-        main_thread()
-'''
