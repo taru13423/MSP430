@@ -37,9 +37,9 @@ void loop() {
 
   while (1) {
     digitalWrite(RED_LED, LOW);
-    if ( !read_serial(2 * 1000) ) { // 2秒以上応答がなければもう一度送信する
+    if ( !read_serial(5 * 1000) ) { // 2秒以上応答がなければもう一度送信する
       get_temperature_by_wire();
-      no_resend = send_temperature_until_ack_lpr9204( packet_id, temperature, humidity );
+      int no_resend = send_temperature_until_ack_lpr9204( packet_id, temperature, humidity );
       break;
     }
     

@@ -108,7 +108,7 @@ def push_each_queue( line ):
             svp = temp2svp(float(temp))  # Saturated Vapor Pressure [Pa]
             vp = svp * float(humi) / 100 # Vapor Pressure [Pa]
             vpd = (svp-vp)/1000   # Vapour Pressure Dificit [kPa]
-            csv = date+'\t'+str(int(sleep_time))+str(temp)+'\t'+str(humi)+'\t'+str(vpd)
+            csv = date+'\t'+str(int(sleep_time))+'\t'+str(temp)+'\t'+str(humi)+'\t'+str(vpd)
             if(os.path.isfile(OUTPUT_FILE + send_id + '_' + day+'.csv')):
 
                 num_lines = sum(1 for line in open(OUTPUT_FILE + send_id + '_' + day+'.csv'))
